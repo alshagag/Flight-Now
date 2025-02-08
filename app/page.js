@@ -1,6 +1,8 @@
+// app/page.js
+
 "use client"; // To enable event handling in React
 import Image from "next/image";
-import '../styles/globals.css';
+import './styles/globals.css';
 
 import { useState, useEffect } from "react";
 import { searchFlights } from "@/app/pages/utils/amadeus"; // Import flight search function

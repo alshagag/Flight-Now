@@ -1,27 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.pexels.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        pathname: '/**',
-      },
-    ],
+    domains: ['images.pexels.com', 'images.unsplash.com'],
   },
   eslint: {
     ignoreDuringBuilds: true, 
   },
   async rewrites() {
+    const amadeusApiUrl = process.env.AMADEUS_API_URL || 'https://test.api.amadeus.com';
     return [
       {
         source: "/api/:path*",
-        destination: "https://test.api.amadeus.com/:path*", // API Amadeus URL
+        destination: `${amadeusApiUrl}/:path*`, 
       },
     ];
   },
