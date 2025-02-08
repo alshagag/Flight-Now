@@ -1,3 +1,4 @@
+/* globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -18,4 +19,10 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+/* Hero Section */
+.hero-section {
+  background-image: url('https://www.biztrip.co.uk/wp-content/uploads/2017/05/Business-Travel-Header-Image.jpg');
+  background-size: cover;
+  background-position: center;
 }

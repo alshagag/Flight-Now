@@ -1,4 +1,5 @@
-// src/utils/amadeus.js
+// app/pages/utils/amadeus.js
+
 import axios from "axios";
 
 const AMADEUS_API_URL = "https://test.api.amadeus.com/v2/shopping/flight-offers"; // Link Sandbox

@@ -1,22 +1,24 @@
+// pages/api/flights/index.tsx
+
 import { NextResponse } from 'next/server';
 import Amadeus from 'amadeus';
 
-// قم بتهيئة مكتبة Amadeus باستخدام المفاتيح
+// Initialize Amadeus library with keys
 const amadeus = new Amadeus({
   clientId: process.env.AMADEUS_API_KEY || '',
   clientSecret: process.env.AMADEUS_API_SECRET || '',
 });
 
-// واجهة البحث عن الرحلات
+// Flight search API
 export async function POST(req: Request) {
   const body = await req.json();
 
   try {
     const response = await amadeus.shopping.flightOffersSearch.get({
-      originLocationCode: body.origin, // كود المدينة الأصلية
-      destinationLocationCode: body.destination, // كود الوجهة
-      departureDate: body.departureDate, // تاريخ المغادرة
-      adults: body.adults, // عدد الركاب
+      originLocationCode: body.origin, // Original city code
+      destinationLocationCode: body.destination, // API code FOR destination city 
+      departureDate: body.departureDate, // Departure Date
+      adults: body.adults, // Number of passengers
     });
 
     return NextResponse.json(response.data);

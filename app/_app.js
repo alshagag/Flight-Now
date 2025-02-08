@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import '../app/global.css';
+import '../styles/globals.css';
+
 
 function MyApp({ Component, pageProps }) {
     return (

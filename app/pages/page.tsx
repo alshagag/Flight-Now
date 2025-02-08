@@ -1,9 +1,9 @@
 "use client"; // To enable event handling in React
 import Image from "next/image";
-import './globals.css';
+import '../styles/globals.css';
 
 import { useState, useEffect } from "react";
-import { searchFlights } from "../utils/amadeus"; // Import flight search function
+import { searchFlights } from "@/app/pages/utils/amadeus"; // Import flight search function
 
 export default function Home() {
   const [origin, setOrigin] = useState(""); // Departure city
@@ -12,10 +12,9 @@ export default function Home() {
   const [returnDate, setReturnDate] = useState(""); // Return Date
   const [adults, setAdults] = useState(1); // Number of Adults
   const [children, setChildren] = useState(0); // Number of Children
-  const [flights, setFlights] = useState([]); 
-  const [error, setError] = useState(""); // Message for errors
+  const [flights, setFlights] = useState([]);
+  const [error, setError] = useState("");
   const [isHydrated, setIsHydrated] = useState(false); // Ensure hydration
-  const [searchResults, setSearchResults] = useState([]); // Store API 
 
   // UseEffect hook to avoid issues with SSR by ensuring code runs only after the component mounts in the client
   useEffect(() => {
@@ -30,7 +29,7 @@ export default function Home() {
     console.log(`Return date: ${returnDate}`);
     console.log(`Number of adults: ${adults}`);
     console.log(`Number of children: ${children}`);
-
+    
     try {
       const response = await searchFlights({
         origin,
