@@ -1,9 +1,8 @@
-// app/page.js
-
 "use client"; // To enable event handling in React
 import Image from "next/image";
+import Link from 'next/link';
 import './styles/globals.css';
-
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import { useState, useEffect } from "react";
 import { searchFlights } from "@/app/pages/utils/amadeus"; // Import flight search function
 
@@ -11,35 +10,30 @@ export default function Home() {
   const [origin, setOrigin] = useState(""); // Departure city
   const [destination, setDestination] = useState(""); // Arrival city
   const [departureDate, setDepartureDate] = useState(""); // Departure Date
-  const [returnDate, setReturnDate] = useState(""); // Return Date
+  const [isOneWay, setIsOneWay] = useState(true); // One-way or round-trip
   const [adults, setAdults] = useState(1); // Number of Adults
   const [children, setChildren] = useState(0); // Number of Children
+  const [infants, setInfants] = useState(0); // Number of Infants
+  const [travelClass, setTravelClass] = useState(""); // Travel class (Economy, Business, etc.)
   const [flights, setFlights] = useState([]);
   const [error, setError] = useState("");
   const [isHydrated, setIsHydrated] = useState(false); // Ensure hydration
 
-  // UseEffect hook to avoid issues with SSR by ensuring code runs only after the component mounts in the client
   useEffect(() => {
     setIsHydrated(true); // Set hydration state once component has mounted
   }, []);
 
   const handleSearch = async () => {
-    console.log("Search flights using the following data:");
-    console.log(`Departure city: ${origin}`);
-    console.log(`Arrival city: ${destination}`);
-    console.log(`Departure date: ${departureDate}`);
-    console.log(`Return date: ${returnDate}`);
-    console.log(`Number of adults: ${adults}`);
-    console.log(`Number of children: ${children}`);
-    
     try {
       const response = await searchFlights({
         origin,
         destination,
         departureDate,
-        returnDate,
+        returnDate: isOneWay ? null : returnDate,
         adults,
         children,
+        infants,
+        travelClass,
       });
 
       setFlights(response); // Update flight data
@@ -54,132 +48,304 @@ export default function Home() {
     return null; // Prevent rendering until hydration is complete
   }
 
-  return (
-    <main>
-      {/* Header */}
-      <header className="bg-blue-600 text-white py-4 text-center">
-        <h1 className="text-2xl font-bold">Flight Now Travel Agency</h1>
-        <nav className="flex justify-center mt-2 gap-4">
-          <a href="#" className="hover:underline">Home</a>
-          <a href="#" className="hover:underline">Flights</a>
-          <a href="#" className="hover:underline">Offers</a>
-          <button className="bg-white text-blue-600 px-4 py-1 rounded">Login</button>
-        </nav>
-      </header>
+    return (
+      <main>
+        {/* Header with Logo and Navigation */}
+        <header className="bg-blue-600 text-white py-4">
+          <div className="container mx-auto flex justify-between items-center px-4">
+            <div className="flex items-center">
+              <Image
+                src="/logo.png" // logo path
+                alt="Flight Now Logo"
+                width={40}
+                height={40}
+                className="mr-2"
+              />
+              <h1 className="text-2xl font-bold">Flight Now</h1>
+            </div>
+  
+            <nav className="flex gap-4">
+              <a href="#" className="hover:underline">Home</a>
+              <a href="#" className="hover:underline">Offers</a>
+              <a href="/about" className="hover:underline">about</a>
+              {/* path to login page */}
+              <Link href="/auth/login">
+                <button className="bg-white text-blue-600 px-4 py-1 rounded">
+                  Login
+                </button>
+              </Link>
+            </nav>
+          </div>
+        </header>
 
       {/* Hero Section */}
-      <div className="hero-section text-center text-white py-32">
+      <div className="hero-section bg-blue-500 text-white text-center py-32">
         <h1 className="text-4xl font-bold">Discover New Destinations</h1>
         <p className="mt-4">Book your flight today and enjoy a unique travel experience!</p>
+        <div className="flex justify-center items-center mt-4"></div>
+        <Link href="/auth/login">
+          <button className="bg-blue-600 text-white px-6 py-2 rounded-md">
+            Get Started
+            </button>
+        </Link>
       </div>
 
-      {/* Search Section */}
+      {/* Search Form */}
       <div className="container mx-auto px-4 my-8">
-        <h2 className="text-center text-2xl font-bold mb-4">Search Flights & Hotels</h2>
-      </div>
-
-      {/* Navigation Buttons */}
-      <div className="flex justify-center gap-4 mb-6">
-        <button className="bg-blue-600 text-white px-6 py-2 rounded">Flights</button>
-        <button className="bg-gray-300 px-6 py-2 rounded">Hotels</button>
-      </div>
-
-      {/* Form Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Departure City */}
-        <div>
-          <label htmlFor="departure-city" className="block text-sm font-medium mb-1">Departure City</label>
-          <input
-            id="departure-city"
-            type="text"
-            placeholder="Enter departure city"
-            className="border p-2 rounded w-full"
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-          />
-        </div>
-
-        {/* Arrival City */}
-        <div>
-          <label htmlFor="arrival-city" className="block text-sm font-medium mb-1">Arrival City</label>
-          <input
-            id="arrival-city"
-            type="text"
-            placeholder="Enter arrival city"
-            className="border p-2 rounded w-full"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-          />
-        </div>
-
-        {/* Departure Date */}
-        <div>
-          <label htmlFor="departure-date" className="block text-sm font-medium mb-1">Departure Date</label>
-          <input
-            id="departure-date"
-            type="date"
-            className="border p-2 rounded w-full"
-            value={departureDate}
-            onChange={(e) => setDepartureDate(e.target.value)}
-          />
-        </div>
-
-        {/* Return Date */}
-        <div>
-          <label htmlFor="return-date" className="block text-sm font-medium mb-1">Return Date</label>
-          <input
-            id="return-date"
-            type="date"
-            className="border p-2 rounded w-full"
-            value={returnDate}
-            onChange={(e) => setReturnDate(e.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          {/* Adults */}
-          <div>
-            <label htmlFor="adults" className="block text-sm font-medium mb-1">Adults</label>
-            <input
-              id="adults"
-              type="number"
-              min="1"
-              className="border p-2 rounded w-full"
-              value={adults}
-              onChange={(e) => setAdults(Number(e.target.value))} // Convert string to number
-            />
+        <h2 className="text-center text-2xl font-bold mb-4">Search Flights</h2>
+        <div className="bg-white shadow-lg rounded-lg p-6">
+          {/* Locations */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label htmlFor="departure-city" className="block text-sm font-medium mb-1">
+                <i className="fas fa-plane-departure mr-2"></i> Departure City
+              </label>
+              <div className="flex">
+                <button className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l">
+                  <i className="fas fa-map-marker-alt"></i>
+                </button>
+                <input
+                  id="departure-city"
+                  type="text"
+                  placeholder="Enter departure city"
+                  className="border p-2 flex-1"
+                  value={origin}
+                  onChange={(e) => setOrigin(e.target.value)}
+                />
+                <button className="bg-gray-200 text-gray-700 px-3 py-2 rounded-r">
+                  <i className="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="arrival-city" className="block text-sm font-medium mb-1">
+                <i className="fas fa-plane-arrival mr-2"></i> Arrival City
+              </label>
+              <div className="flex">
+                <button className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l">
+                  <i className="fas fa-map-marker-alt"></i>
+                </button>
+                <input
+                  id="arrival-city"
+                  type="text"
+                  placeholder="Enter arrival city"
+                  className="border p-2 flex-1"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                />
+                <button className="bg-gray-200 text-gray-700 px-3 py-2 rounded-r">
+                  <i className="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Children */}
-          <div>
-            <label htmlFor="children" className="block text-sm font-medium mb-1">Children</label>
-            <input
-              id="children"
-              type="number"
-              min="0"
-              className="border p-2 rounded w-full"
-              value={children}
-              onChange={(e) => setChildren(Number(e.target.value))} // Convert string to number
-            />
+          {/* Dates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label htmlFor="departure-date" className="block text-sm font-medium mb-1">
+                <i className="fas fa-calendar-alt mr-2"></i> Departure Date
+              </label>
+              <div className="flex">
+                <button className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l">
+                  <i className="fas fa-calendar-alt"></i>
+                </button>
+                <input
+                  id="departure-date"
+                  type="date"
+                  className="border p-2 flex-1"
+                  value={departureDate}
+                  onChange={(e) => setDepartureDate(e.target.value)}
+                />
+              </div>
+            </div>
+            {!isOneWay && (
+              <div>
+                <label htmlFor="return-date" className="block text-sm font-medium mb-1">
+                  <i className="fas fa-calendar-alt mr-2"></i> Return Date
+                </label>
+                <div className="flex">
+                  <button className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l">
+                    <i className="fas fa-calendar-alt"></i>
+                  </button>
+                  <input
+                    id="return-date"
+                    type="date"
+                    className="border p-2 flex-1"
+                    value={returnDate}
+                    onChange={(e) => setReturnDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Search Button */}
-        <div className="mt-4">
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded w-full"
-            onClick={handleSearch}
-          >
-            Search Flights
-          </button>
-        </div>
+          {/* Flight Type */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-1">
+              <i className="fas fa-plane mr-2"></i> Flight Type
+            </label>
+            <div className="flex gap-4">
+              <button
+                className={`px-4 py-2 rounded ${isOneWay ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+                onClick={() => setIsOneWay(true)}
+              >
+                One-way
+              </button>
+              <button
+                className={`px-4 py-2 rounded ${!isOneWay ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+                onClick={() => setIsOneWay(false)}
+              >
+                Round-trip
+              </button>
+            </div>
+          </div>
 
-        {/* Error Message */}
-        {error && <p className="text-red-500 text-center mt-4">{error}</p>}
+          {/* Travel Class */}
+          <div className="mb-6">
+            <label htmlFor="travel-class" className="block text-sm font-medium mb-1">
+              <i className="fas fa-cogs mr-2"></i> Travel Class
+            </label>
+            <select
+              id="travel-class"
+              className="border p-2 rounded w-full"
+              value={travelClass}
+              onChange={(e) => setTravelClass(e.target.value)}
+            >
+              <option value="economy">Economy</option>
+              <option value="business">Business</option>
+              <option value="first-class">First Class</option>
+            </select>
+          </div>
+
+          {/* Passengers */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label htmlFor="adults" className="block text-sm font-medium mb-1">
+                <i className="fas fa-user mr-2"></i> Adults (12+ years)
+              </label>
+              <div className="flex">
+                <button
+                  className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l"
+                  onClick={() => setAdults(adults > 1 ? adults - 1 : 1)}
+                >
+                  -
+                </button>
+                <input
+                  id="adults"
+                  type="number"
+                  min="1"
+                  className="border p-2 flex-1 text-center"
+                  value={adults}
+                  onChange={(e) => setAdults(Number(e.target.value))}
+                />
+                <button
+                  className="bg-gray-200 text-gray-700 px-3 py-2 rounded-r"
+                  onClick={() => setAdults(adults + 1)}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="children" className="block text-sm font-medium mb-1">
+                <i className="fas fa-child mr-2"></i> Children (2-12 years)
+              </label>
+              <div className="flex">
+                <button
+                  className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l"
+                  onClick={() => setChildren(children > 0 ? children - 1 : 0)}
+                >
+                  -
+                </button>
+                <input
+                  id="children"
+                  type="number"
+                  min="0"
+                  className="border p-2 flex-1 text-center"
+                  value={children}
+                  onChange={(e) => setChildren(Number(e.target.value))}
+                />
+                <button
+                  className="bg-gray-200 text-gray-700 px-3 py-2 rounded-r"
+                  onClick={() => setChildren(children + 1)}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="infants" className="block text-sm font-medium mb-1">
+                <i className="fas fa-baby mr-2"></i> Infants (0-2 years)
+              </label>
+              <div className="flex">
+                <button
+                  className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l"
+                  onClick={() => setInfants(infants > 0 ? infants - 1 : 0)}
+                >
+                  -
+                </button>
+                <input
+                  id="infants"
+                  type="number"
+                  min="0"
+                  className="border p-2 flex-1 text-center"
+                  value={infants}
+                  onChange={(e) => setInfants(Number(e.target.value))}
+                />
+                <button
+                  className="bg-gray-200 text-gray-700 px-3 py-2 rounded-r"
+                  onClick={() => setInfants(infants + 1)}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <div className="mt-4">
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded w-full"
+              onClick={handleSearch}
+            >
+              <i className="fas fa-search mr-2"></i> Search Flights
+            </button>
+          </div>
+
+          {/* Error Message */}
+          {error && <p className="text-red-500 text-center mt-4">{error}</p>}
+        </div>
       </div>
 
-      {/* Popular Destinations */}
-      <div className="container mx-auto px-4 my-8">
+      {/* Flight Results */}
+      {flights.length > 0 && (
+        <div className="container mx-auto px-4 my-8">
+          <h2 className="text-center text-2xl font-bold mb-4">Flight Results</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {flights.map((flight, index) => (
+              <div key={index} className="bg-white shadow-lg rounded-lg p-6">
+                <h3 className="font-bold text-lg">
+                  <i className="fas fa-plane mr-2"></i>
+                  {flight.origin} to {flight.destination}
+                </h3>
+                <p className="mt-2">
+                  <strong>Departure:</strong> {flight.departureDate}
+                  <br />
+                  <strong>Return:</strong> {flight.returnDate}
+                  <br />
+                  <strong>Class:</strong> {flight.travelClass}
+                  <br />
+                  <strong>Price:</strong> ${flight.price}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      
+<div className="container mx-auto px-4 my-8">
         <h2 className="text-center text-2xl font-bold mb-4">Popular Destinations</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
@@ -199,7 +365,7 @@ export default function Home() {
               desc: "The city of dreams.",
             },
           ].map((dest) => (
-            <div key={dest.name} className="bg-white shadow rounded overflow-hidden">
+            <div key={dest.name} className="bg-white shadow-lg rounded-lg p-6">
               <Image
                 src={dest.img}
                 alt={dest.name}
@@ -209,7 +375,7 @@ export default function Home() {
               />
               <div className="p-4">
                 <h3 className="font-bold text-lg">{dest.name}</h3>
-                <p className="text-gray-500">{dest.desc}</p>
+                <p className="mt-2">{dest.desc}</p>
               </div>
             </div>
           ))}
@@ -217,14 +383,8 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-blue-600 text-white py-6">
-        <div className="container mx-auto text-center">
-          <p>&copy; 2025 Flight Now Travel Agency</p>
-          <nav>
-            <a href="#" className="mx-2 hover:underline">Privacy Policy</a>
-            <a href="#" className="mx-2 hover:underline">Terms of Service</a>
-          </nav>
-        </div>
+      <footer className="bg-blue-600 text-white py-4 text-center">
+        <p>&copy; 2025 Flight Now Travel Agency. All rights reserved.</p>
       </footer>
     </main>
   );

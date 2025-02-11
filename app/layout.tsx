@@ -1,10 +1,10 @@
 // app/layout.tsx
 
 import type { Metadata } from "next";
+import 'bootstrap/dist/css/bootstrap.css';
 import './styles/globals.css';
+import { Inter } from "next/font/google"; // Importing fonts from @next/font/google
 
-// Importing fonts from @next/font/google (more efficient approach)
-import { Inter } from "next/font/google";
 
 const interFont = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
