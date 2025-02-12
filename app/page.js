@@ -61,7 +61,7 @@ export default function Home() {
                 height={40}
                 className="mr-2"
               />
-              <h1 className="text-2xl font-bold">Flight Now</h1>
+              <h1 className="text-[18px] sm:text-[24px] md:text-[30px] font-bold">Flight Now</h1>
             </div>
   
             <nav className="flex gap-4">
