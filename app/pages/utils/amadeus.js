@@ -2,18 +2,20 @@
 
 import axios from "axios";
 
-// URL for Amadeus API (Sandbox environment)
+// URL for Amadeus API (TEST environment)
 const AMADEUS_API_URL = "https://test.api.amadeus.com/v2/shopping/flight-offers"; 
 
 // Function to search for flights using the Amadeus API
 export const searchFlights = async (accessToken, flightData) => {
   try {
-    // Sending POST request to the Amadeus API to fetch flight offers
-    const response = await axios.post(AMADEUS_API_URL, flightData, {
+    // Sending GET request to the Amadeus API to fetch flight offers
+    const response = await axios.get(AMADEUS_API_URL, {
+      params: flightData,
       headers: {
         Authorization: `Bearer ${accessToken}`, // Authorization header with access token
         "Content-Type": "application/json", // Set content type to JSON
       },
+      
     });
 
     // Return the data from the API response

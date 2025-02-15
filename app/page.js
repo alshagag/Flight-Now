@@ -25,18 +25,19 @@ export default function Home() {
 
   const handleSearch = async () => {
     try {
-      const response = await searchFlights({
-        origin,
-        destination,
+      const response = await searchFlights("ReGjUl9tK2wDAPbrOl3P1lP1EmFl",{ // Access token Amadeus API 
+        originLocationCode: origin,
+        destinationLocationCode: destination,
         departureDate,
         returnDate: isOneWay ? null : returnDate,
         adults,
         children,
         infants,
-        travelClass,
+        travelClass: travelClass === "" ?  "ECONOMY" : travelClass ?? "ECONOMY",
+        currencyCode: "GBP"
       });
 
-      setFlights(response); // Update flight data
+      setFlights(response.data); // Update flight data
       setError(""); // Clear any previous errors
     } catch (err) {
       setError("Failed to fetch flights. Please try again later.");
@@ -212,9 +213,9 @@ export default function Home() {
               value={travelClass}
               onChange={(e) => setTravelClass(e.target.value)}
             >
-              <option value="economy">Economy</option>
-              <option value="business">Business</option>
-              <option value="first-class">First Class</option>
+              <option selected value="ECONOMY">Economy</option>
+              <option value="BUSINESS">Business</option>
+              <option value="FIRST">First Class</option>
             </select>
           </div>
 
@@ -323,23 +324,38 @@ export default function Home() {
         <div className="container mx-auto px-4 my-8">
           <h2 className="text-center text-2xl font-bold mb-4">Flight Results</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {flights.map((flight, index) => (
-              <div key={index} className="bg-white shadow-lg rounded-lg p-6">
-                <h3 className="font-bold text-lg">
-                  <i className="fas fa-plane mr-2"></i>
-                  {flight.origin} to {flight.destination}
-                </h3>
-                <p className="mt-2">
-                  <strong>Departure:</strong> {flight.departureDate}
-                  <br />
-                  <strong>Return:</strong> {flight.returnDate}
-                  <br />
-                  <strong>Class:</strong> {flight.travelClass}
-                  <br />
-                  <strong>Price:</strong> ${flight.price}
-                </p>
+          {flights.map((flight) => (
+        <div key={flight.id} className="border p-4 rounded-lg shadow-md mb-4">
+          <h3 className="text-lg font-semibold">Flight {flight.id}</h3>
+          <p className="text-gray-600">Total Price: {flight.price.total} {flight.price.currency}</p>
+          <div className="mt-2">
+            {flight.itineraries.map((itinerary, index) => (
+              <div key={index} className="border-t mt-2 pt-2">
+                <h4 className="text-md font-medium">Duration: {itinerary.duration}</h4>
+                {itinerary.segments.map((segment) => (
+                  <div key={segment.id} className="mt-2 p-2 bg-gray-100 rounded-md">
+                    <p>
+                      <strong>From:</strong> {segment.departure.iataCode} ({segment.departure.at})
+                    </p>
+                    <p>
+                      <strong>To:</strong> {segment.arrival.iataCode} ({segment.arrival.at})
+                    </p>
+                    <p>
+                      <strong>Airline:</strong> {flight.validatingAirlineCodes[0]} ({segment.carrierCode} {segment.number})
+                    </p>
+                    <p>
+                      <strong>Aircraft:</strong> {segment.aircraft.code}
+                    </p>
+                    <p>
+                      <strong>Duration:</strong> {segment.duration}
+                    </p>
+                  </div>
+                ))}
               </div>
             ))}
+          </div>
+        </div>
+      ))}
           </div>
         </div>
       )}

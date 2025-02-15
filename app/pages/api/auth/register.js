@@ -1,41 +1,71 @@
-// pages/api/register.js
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
+import db from "@/lib/db";  // Assuming you have a database connection
+import sendEmail from "@/lib/send-email";
+import bcrypt from "bcrypt";  // Add bcrypt for password hashing
 
-const prisma = new PrismaClient();
+// Function to validate email using regex
+const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+};
+
+// Function to check password strength
+const isStrongPassword = (password) => {
+    // Password must contain at least 8 characters, 1 uppercase letter, 1 number, and 1 special character
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+};
 
 export default async function handler(req, res) {
-  if (req.method === "POST") {
-    const { name, email, password } = req.body;
-
-    // Simple validation
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: "All fields are required." });
+    if (req.method !== "POST") {
+        return res.status(405).json({ error: "Method Not Allowed" });
     }
 
-    // Check if the email is already taken
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const { email, password } = req.body;
 
+    // Validate email format
+    if (!isValidEmail(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    // Check password strength
+    if (!isStrongPassword(password)) {
+        return res.status(400).json({
+            error: "Password must be at least 8 characters long, contain 1 uppercase letter, 1 number, and 1 special character.",
+        });
+    }
+
+    // Check if the user already exists
+    const existingUser = await db.user.findUnique({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: "Email already in use." });
+        return res.status(400).json({ error: "User already exists" });
     }
 
-    // Hash the password
+    // Hash the password before storing it in the database
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Save the new user to the database
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-      },
+    // Generate verification token
+    const token = uuidv4();
+
+    // Save user with `verified: false` status
+    await db.user.create({
+        data: {
+            email,
+            password: hashedPassword, // Save hashed password
+            verified: false,
+            verificationToken: token,
+        },
     });
 
-    return res.status(201).json({ success: true, message: "User created successfully." });
-  } else {
-    res.status(405).json({ message: "Method Not Allowed" });
-  }
+    // Send confirmation email
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, token }),
+    });
+
+    return res.status(200).json({
+        success: true,
+        message: "Registration successful! Check your email for verification.",
+    });
 }

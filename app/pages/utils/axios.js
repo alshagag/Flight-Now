@@ -7,8 +7,8 @@ const AMADEUS_API_URL = "https://test.api.amadeus.com/v2/shopping/flight-offers"
 // Function to search for flights
 export const searchFlights = async (accessToken, flightData) => {
   try {
-    // Sending a POST request to the Amadeus API
-    const response = await axios.post(AMADEUS_API_URL, flightData, {
+    // Sending a GET request to the Amadeus API
+    const response = await axios.get(AMADEUS_API_URL, flightData, {
       headers: {
         Authorization: `Bearer ${accessToken}`,  // Using the access token for authentication
         "Content-Type": "application/json",  // Specifying the content type as JSON
