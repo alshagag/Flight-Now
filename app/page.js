@@ -25,7 +25,7 @@ export default function Home() {
 
   const handleSearch = async () => {
     try {
-      const response = await searchFlights("ReGjUl9tK2wDAPbrOl3P1lP1EmFl",{ // Access token Amadeus API 
+      const response = await searchFlights("8iyopPrjVSFaG2MrkObbg6P92J4y",{ // Access token Amadeus API 
         originLocationCode: origin,
         destinationLocationCode: destination,
         departureDate,
