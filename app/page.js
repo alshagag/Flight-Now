@@ -1,101 +1,115 @@
 "use client"; // To enable event handling in React
 import Image from "next/image";
-import Link from 'next/link';
-import './styles/globals.css';
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import Link from "next/link";
 import { useState, useEffect } from "react";
-import { searchFlights } from "@/app/pages/utils/amadeus"; // Import flight search function
+import { searchFlights } from "@/app/pages/utils/amadeus";
+import "./styles/globals.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 
 export default function Home() {
-  const [origin, setOrigin] = useState(""); // Departure city
-  const [destination, setDestination] = useState(""); // Arrival city
-  const [departureDate, setDepartureDate] = useState(""); // Departure Date
-  const [isOneWay, setIsOneWay] = useState(true); // One-way or round-trip
-  const [adults, setAdults] = useState(1); // Number of Adults
-  const [children, setChildren] = useState(0); // Number of Children
-  const [infants, setInfants] = useState(0); // Number of Infants
-  const [travelClass, setTravelClass] = useState(""); // Travel class (Economy, Business, etc.)
+  const [origin, setOrigin] = useState("");
+  const [destination, setDestination] = useState("");
+  const [departureDate, setDepartureDate] = useState(new Date().toISOString().split("T")[0]);
+  const [returnDate, setReturnDate] = useState("");
+  const [isOneWay, setIsOneWay] = useState(true);
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
+  const [travelClass, setTravelClass] = useState("ECONOMY");
+  const [currencyCode, setCurrencyCode] = useState("GBP");
   const [flights, setFlights] = useState([]);
   const [error, setError] = useState("");
-  const [isHydrated, setIsHydrated] = useState(false); // Ensure hydration
+  const [isLoading, setIsLoading] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setIsHydrated(true); // Set hydration state once component has mounted
+    setIsHydrated(true);
   }, []);
 
   const handleSearch = async () => {
+    if (!origin || !destination || !departureDate) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
     try {
-      const response = await searchFlights("8iyopPrjVSFaG2MrkObbg6P92J4y",{ // Access token Amadeus API 
+      setIsLoading(true);
+      setError("");
+
+      const flightData = {
         originLocationCode: origin,
         destinationLocationCode: destination,
         departureDate,
-        returnDate: isOneWay ? null : returnDate,
+        ...(isOneWay ? {} : { returnDate }),
         adults,
         children,
         infants,
-        travelClass: travelClass === "" ?  "ECONOMY" : travelClass ?? "ECONOMY",
-        currencyCode: "GBP"
-      });
+        travelClass,
+        currencyCode,
+      };
 
-      setFlights(response.data); // Update flight data
-      setError(""); // Clear any previous errors
+      const response = await searchFlights(flightData);
+      const flightOffers = response?.data || [];
+
+      if (flightOffers.length > 0) {
+        setFlights(flightOffers);
+      } else {
+        setError("No flights available for the selected criteria.");
+      }
     } catch (err) {
+      console.error("Flight search error:", err);
       setError("Failed to fetch flights. Please try again later.");
-      setFlights([]); // Clear the flight data
+      setFlights([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   if (!isHydrated) {
-    return null; // Prevent rendering until hydration is complete
-  }
+    return null;
+  }  
 
-    return (
-      <main>
-        {/* Header with Logo and Navigation */}
-        <header className="bg-blue-600 text-white py-4">
-          <div className="container mx-auto flex justify-between items-center px-4">
-            <div className="flex items-center">
-              <Image
-                src="/logo.png" // logo path
-                alt="Flight Now Logo"
-                width={40}
-                height={40}
-                className="mr-2"
-              />
-              <h1 className="text-[18px] sm:text-[24px] md:text-[30px] font-bold">Flight Now</h1>
-            </div>
-  
-            <nav className="flex gap-4">
-              <a href="#" className="hover:underline">Home</a>
-              <a href="#" className="hover:underline">Offers</a>
-              <a href="/about" className="hover:underline">about</a>
-              {/* path to login page */}
-              <Link href="/auth/login">
-                <button className="bg-white text-blue-600 px-4 py-1 rounded">
-                  Login
-                </button>
-              </Link>
-            </nav>
+  return (
+    <main>
+      <header className="bg-blue-600 text-white py-4">
+        <div className="container mx-auto flex justify-between items-center px-4">
+          <div className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="Flight Now Logo"
+              width={40}
+              height={40}
+              className="mr-2"
+            />
+            <h1 className="text-[18px] sm:text-[24px] md:text-[30px] font-bold">Flight Now</h1>
           </div>
-        </header>
 
-      {/* Hero Section */}
+          <nav className="flex gap-4">
+            <a href="#" className="hover:underline">Home</a>
+            <a href="#" className="hover:underline">Offers</a>
+            <a href="/about" className="hover:underline">About</a>
+            <Link href="/auth/login">
+              <button className="bg-white text-blue-600 px-4 py-1 rounded">
+                Login
+              </button>
+            </Link>
+          </nav>
+        </div>
+      </header>
+
       <div className="hero-section bg-blue-500 text-white text-center py-32">
         <h1 className="text-4xl font-bold">Discover New Destinations</h1>
         <p className="mt-4">Book your flight today and enjoy a unique travel experience!</p>
-        <div className="flex justify-center items-center mt-4"></div>
         <Link href="/auth/login">
-          <button className="bg-blue-600 text-white px-6 py-2 rounded-md">
+          <button className="bg-blue-600 text-white px-6 py-2 rounded-md mt-4">
             Get Started
-            </button>
+          </button>
         </Link>
       </div>
 
-      {/* Search Form */}
       <div className="container mx-auto px-4 my-8">
         <h2 className="text-center text-2xl font-bold mb-4">Search Flights</h2>
         <div className="bg-white shadow-lg rounded-lg p-6">
-          {/* Locations */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label htmlFor="departure-city" className="block text-sm font-medium mb-1">
@@ -147,36 +161,26 @@ export default function Home() {
               <label htmlFor="departure-date" className="block text-sm font-medium mb-1">
                 <i className="fas fa-calendar-alt mr-2"></i> Departure Date
               </label>
-              <div className="flex">
-                <button className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l">
-                  <i className="fas fa-calendar-alt"></i>
-                </button>
-                <input
-                  id="departure-date"
-                  type="date"
-                  className="border p-2 flex-1"
-                  value={departureDate}
-                  onChange={(e) => setDepartureDate(e.target.value)}
-                />
-              </div>
+              <input
+                id="departure-date"
+                type="date"
+                className="border p-2 w-full"
+                value={departureDate}
+                onChange={(e) => setDepartureDate(e.target.value)}
+              />
             </div>
             {!isOneWay && (
               <div>
                 <label htmlFor="return-date" className="block text-sm font-medium mb-1">
                   <i className="fas fa-calendar-alt mr-2"></i> Return Date
                 </label>
-                <div className="flex">
-                  <button className="bg-gray-200 text-gray-700 px-3 py-2 rounded-l">
-                    <i className="fas fa-calendar-alt"></i>
-                  </button>
-                  <input
-                    id="return-date"
-                    type="date"
-                    className="border p-2 flex-1"
-                    value={returnDate}
-                    onChange={(e) => setReturnDate(e.target.value)}
-                  />
-                </div>
+                <input
+                  id="return-date"
+                  type="date"
+                  className="border p-2 w-full"
+                  value={returnDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                />
               </div>
             )}
           </div>
@@ -209,13 +213,13 @@ export default function Home() {
             </label>
             <select
               id="travel-class"
-              className="border p-2 rounded w-full"
               value={travelClass}
               onChange={(e) => setTravelClass(e.target.value)}
+              className="border p-2 w-full"
             >
-              <option selected value="ECONOMY">Economy</option>
+              <option value="ECONOMY">Economy</option>
               <option value="BUSINESS">Business</option>
-              <option value="FIRST">First Class</option>
+              <option value="FIRST">First</option>
             </select>
           </div>
 
@@ -304,63 +308,85 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Search Button */}
-          <div className="mt-4">
-            <button
-              className="bg-blue-600 text-white px-4 py-2 rounded w-full"
-              onClick={handleSearch}
-            >
-              <i className="fas fa-search mr-2"></i> Search Flights
-            </button>
-          </div>
+        {/* Search Button */}
+          <button
+            className="w-full bg-blue-600 text-white py-2 rounded"
+            onClick={handleSearch}
+            disabled={isLoading}
+          >
+            {isLoading ? "Searching..." : "Search Flights"}
+          </button>
 
-          {/* Error Message */}
-          {error && <p className="text-red-500 text-center mt-4">{error}</p>}
+          {/* Error Handling */}
+          {error && (
+            <div className="mt-4 text-red-500 text-center">
+              <i className="fas fa-exclamation-circle"></i> {error}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Flight Results */}
-      {flights.length > 0 && (
-        <div className="container mx-auto px-4 my-8">
-          <h2 className="text-center text-2xl font-bold mb-4">Flight Results</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {flights.map((flight) => (
-        <div key={flight.id} className="border p-4 rounded-lg shadow-md mb-4">
-          <h3 className="text-lg font-semibold">Flight {flight.id}</h3>
-          <p className="text-gray-600">Total Price: {flight.price.total} {flight.price.currency}</p>
-          <div className="mt-2">
-            {flight.itineraries.map((itinerary, index) => (
-              <div key={index} className="border-t mt-2 pt-2">
-                <h4 className="text-md font-medium">Duration: {itinerary.duration}</h4>
-                {itinerary.segments.map((segment) => (
-                  <div key={segment.id} className="mt-2 p-2 bg-gray-100 rounded-md">
-                    <p>
-                      <strong>From:</strong> {segment.departure.iataCode} ({segment.departure.at})
-                    </p>
-                    <p>
-                      <strong>To:</strong> {segment.arrival.iataCode} ({segment.arrival.at})
-                    </p>
-                    <p>
-                      <strong>Airline:</strong> {flight.validatingAirlineCodes[0]} ({segment.carrierCode} {segment.number})
-                    </p>
-                    <p>
-                      <strong>Aircraft:</strong> {segment.aircraft.code}
-                    </p>
-                    <p>
-                      <strong>Duration:</strong> {segment.duration}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-          </div>
-        </div>
-      )}
+          {/* Flight Results */}
+  {flights.length > 0 ? (
+    <div className="container mx-auto px-4 my-8">
+      <h2 className="text-center text-2xl font-bold mb-4">Available Flights</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {flights.map((flight, index) => (
+          <div key={index} className="bg-white shadow-lg rounded-lg p-6">
+            <h3 className="text-xl font-semibold mb-2">
+              {flight.itineraries[0].segments[0].departure.iataCode} →{" "}
+              {flight.itineraries[flight.itineraries.length - 1].segments[
+                flight.itineraries[flight.itineraries.length - 1].segments.length - 1
+              ].arrival.iataCode}
+            </h3>
 
-      
+            {/* Display itinerary details */}
+            {flight.itineraries.map((itinerary, itinIndex) => {
+              // Extract duration using Regex
+              const durationMatch = itinerary.duration.match(/(\d+)H(\d+)?/);
+              const hours = durationMatch ? durationMatch[1] : "0";
+              const minutes = durationMatch && durationMatch[2] ? durationMatch[2] : "00";
+
+              // Display travel path
+              const travelPath = itinerary.segments
+                .flatMap(({ departure, arrival }, segIndex, segments) => {
+                  if (segIndex === segments.length - 1) {
+                    return [departure.iataCode, arrival.iataCode];
+                  }
+                  return [departure.iataCode];
+                })
+                .join(" → ");
+
+              return (
+                <div key={itinIndex} className="flex flex-col mt-2">
+                  <small className="text-gray-500">
+                    {itinIndex === 0 ? "Outbound" : "Return"}
+                  </small>
+                  <span className="font-semibold">{travelPath}</span>
+                  <div className="text-sm text-gray-700">
+                    Duration: {hours}h {minutes}m
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Display price */}
+            <span className="bg-blue-500 text-white rounded-full px-4 py-1 text-sm font-semibold mt-3 inline-block">
+              {flight.price.total} {flight.price.currency}
+            </span>
+
+            {/* View details button */}
+            <button className="bg-blue-600 text-white px-4 py-2 mt-4 rounded w-full">
+              View Details
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : (
+    <p className="text-center text-gray-600 text-lg mt-6">No results found.</p>
+  )}
+
 <div className="container mx-auto px-4 my-8">
         <h2 className="text-center text-2xl font-bold mb-4">Popular Destinations</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
