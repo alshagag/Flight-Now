@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Amadeus API Credentials (Ensure these are stored securely in environment variables)
 const TOKEN_URL = "https://test.api.amadeus.com/v1/security/oauth2/token";
-const AMADEUS_API_URL = "https://test.api.amadeus.com/v2/shopping/flight-offers";
+const AMADEUS_API_URL_HOTELS = "https://test.api.amadeus.com/v3/shopping/hotel-offers"; // URL for Hotels
 const CLIENT_ID = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_ID;
 const CLIENT_SECRET = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_SECRET;
 
@@ -51,48 +51,66 @@ const getValidAccessToken = async () => {
 };
 
 /**
- * Search for flights using Amadeus API
- * @param {Object} flightData - Flight search parameters
- * @returns {Promise<Object>} Flight search results
+ * Helper function to calculate checkInDate from checkOutDate
+ * @param {string} checkOutDate - The check-out date (e.g., '2023-11-22')
+ * @returns {string} checkInDate - The calculated check-in date (the day before checkOutDate)
  */
-export const searchFlights = async (flightData) => {
+const getCheckInDateFromCheckOut = (checkOutDate) => {
+  // Ensure the checkOutDate is valid
+  if (!checkOutDate || isNaN(new Date(checkOutDate).getTime())) {
+    throw new Error("❌ Invalid check-out date provided. Please check the date format.");
+  }
+
+  const checkOut = new Date(checkOutDate); // Convert checkOutDate to Date object
+  checkOut.setDate(checkOut.getDate() -1 ); // Subtract 1 day to get checkInDate
+  return checkOut.toISOString().split('T')[0]; // Return the date in 'YYYY-MM-DD' format
+};
+
+/**
+ * Search for hotels using Amadeus API by hotelIds
+ * @param {Object} searchParams - Additional search parameters (hotelIds, adults, checkInDate, checkOutDate, etc.)
+ * @returns {Promise<Object>} Hotel search results
+ */
+export const getMultiHotelOffers = async (searchParams) => {
   try {
+    // Destructure parameters from searchParams
+        const { hotelIds, _, checkOutDate, adults, countryOfResidence } = searchParams;
+
+    // Ensure checkOutDate is provided and valid
+    if (!checkOutDate || isNaN(new Date(checkOutDate).getTime())) {
+      throw new Error("❌ Check-out date is required. Please provide a valid check-out date.");
+    }
+
     // Get a valid access token
     const token = await getValidAccessToken();
-    console.log("🔍 Searching flights...");
+    console.log("🔍 Searching hotels...");
 
-    // Fetch flight offers from the Amadeus API
-    const response = await axios.get(AMADEUS_API_URL, {
-      params: flightData,
+    // Calculate checkInDate based on checkOutDate
+    const checkInDate = getCheckInDateFromCheckOut(checkOutDate);
+
+    // Fetch hotel offers from the Amadeus API
+    const response = await axios.get(AMADEUS_API_URL_HOTELS, {
+      params: {
+        "hotelIds" : hotelIds.map(hotelId => hotelId.trim()).join(","), // Comma-separated list of hotelIds
+        adults,
+      },
       headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/vnd.amadeus+json",
       },
+      timeout: 10000 // 10 seconds timeout
     });
 
-    // Check if we only got the count and a link to the actual flight details
-    if (response.data.meta.count > 0) {
-      const flightDetailsLink = response.data.meta.links.self;
-
-      // If there's a link, fetch the flight details from that URL
-      if (flightDetailsLink) {
-        const flightDetailsResponse = await axios.get(flightDetailsLink, {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        console.log("✅ Flight details fetched successfully");
-        return flightDetailsResponse.data; // Return flight details
-      }
+    // Check if we got valid results
+    if (response.data.offers && response.data.offers.length > 0) {
+      console.log("✅ Hotel search successful:", response.data);
+      return response.data;
+    } else {
+      console.log("❓ No hotels found with the provided parameters.");
+      return response.data;
     }
-
-    // Return the search result with count and other metadata
-    console.log("✅ Flight search successful:", response.data);
-    return response.data;
   } catch (error) {
-    console.error("❌ Error fetching flight data:", error);
+    console.error("❌ Error fetching hotel data:", error);
 
     if (error.response) {
       console.error("🛑 API Response Error:", {

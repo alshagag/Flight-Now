@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { searchFlights } from "@/app/pages/utils/amadeus";
+import { getMultiHotelOffers } from "@/app/pages/utils/getHotelsOffers";
+import { getHotelsByCity } from "@/app/pages/utils/getHotelsList";
 import "./styles/globals.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 
@@ -18,14 +20,18 @@ export default function Home() {
   const [travelClass, setTravelClass] = useState("ECONOMY");
   const [currencyCode, setCurrencyCode] = useState("GBP");
   const [flights, setFlights] = useState([]);
+  const [hotels, setHotels] = useState([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [needHotel, setNeedHotel] = useState(false);  // Added state to check if hotel is needed
+  const [checkOutDate, setCheckOutDate] = useState("");  // Added check-out date state
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
+  // Handle search when user clicks search
   const handleSearch = async () => {
     if (!origin || !destination || !departureDate) {
       setError("Please fill in all required fields.");
@@ -46,6 +52,7 @@ export default function Home() {
         infants,
         travelClass,
         currencyCode,
+        max: 10, // Number of Result to fetch (SHOWING USERS)
       };
 
       const response = await searchFlights(flightData);
@@ -56,6 +63,12 @@ export default function Home() {
       } else {
         setError("No flights available for the selected criteria.");
       }
+
+      // Search for hotels if needed
+      if (needHotel && checkOutDate) {
+        await handlegetMultiHotelOffers();
+      }
+      
     } catch (err) {
       console.error("Flight search error:", err);
       setError("Failed to fetch flights. Please try again later.");
@@ -65,10 +78,32 @@ export default function Home() {
     }
   };
 
+  // Get hotel offers based on the destination and check-out date
+  const handlegetMultiHotelOffers = async () => {
+    try {
+      setIsLoading(true);
+      const hotelData = {
+        hotelIds: ["MCLONGHM"],  // Example hotel ID
+        checkInDate: departureDate,
+        checkOutDate: checkOutDate,  // Pass the check-out date
+        adults: 1,  // Example number of adults,
+        countryOfResidence: destination
+      };
+      const hotelDataResponse = await getMultiHotelOffers(hotelData);  // Adjust according to your API
+      setHotels(hotelDataResponse?.data || []);
+    } catch (err) {
+      console.error("Hotel search error:", err);
+      setError("Failed to fetch hotels. Please try again later.");
+      setHotels([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!isHydrated) {
     return null;
-  }  
-
+  }
+  
   return (
     <main>
       <header className="bg-blue-600 text-white py-4">
@@ -223,6 +258,41 @@ export default function Home() {
             </select>
           </div>
 
+    {/* Do you need a hotel? */}
+    <div className="mb-6">
+      <label className="block text-sm font-medium mb-1">Do you need a hotel?</label>
+      <div className="flex gap-4">
+        <button
+          className={`px-4 py-2 rounded ${needHotel ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          onClick={() => setNeedHotel(true)}
+        >
+          Yes
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${!needHotel ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          onClick={() => setNeedHotel(false)}
+        >
+          No
+        </button>
+      </div>
+    </div>
+
+    {/* Check-out Date (Only when hotel is needed) */}
+    {needHotel && (
+      <div className="mb-6">
+        <label htmlFor="check-out-date" className="block text-sm font-medium mb-1">
+          Check-out Date
+        </label>
+        <input
+          id="check-out-date"
+          type="date"
+          className="border p-2 w-full"
+          value={checkOutDate}
+          onChange={(e) => setCheckOutDate(e.target.value)}
+        />
+      </div>
+    )}
+
           {/* Passengers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
@@ -375,9 +445,9 @@ export default function Home() {
               {flight.price.total} {flight.price.currency}
             </span>
 
-            {/* View details button */}
+            {/* Book details button */}
             <button className="bg-blue-600 text-white px-4 py-2 mt-4 rounded w-full">
-              View Details
+            <Link href={`/flight-orders/${flight.id}`}>Book Now</Link>
             </button>
           </div>
         ))}
@@ -386,6 +456,39 @@ export default function Home() {
   ) : (
     <p className="text-center text-gray-600 text-lg mt-6">No results found.</p>
   )}
+
+
+{/* Hotel Search  Results */}
+{hotels?.length > 0 && (
+  <div className="container mx-auto px-4 my-8">
+    <h2 className="text-center text-2xl font-bold mb-4">🏨 Recommended Hotels</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {hotels.map((hotel, index) => (
+        <div key={index} className="bg-white shadow-lg rounded-lg p-6 transition-transform transform hover:scale-105">
+          <h3 className="text-xl font-semibold mb-2">{hotel.hotel.name}</h3>
+          <span className="text-gray-700">📍 {hotel.hotel.cityCode}</span>
+          
+          {hotel.offers?.length > 0 ? (
+            <>
+              <p className="text-gray-500">
+                💰 Price: {hotel.offers[0].price.total} {hotel.offers[0].price.currency}
+              </p>
+              <a href={hotel.offers[0].self} target="_blank" rel="noopener noreferrer">
+                <button className="bg-blue-600 text-white px-4 py-2 mt-4 rounded w-full hover:bg-blue-700">
+                  View Details
+                </button>
+              </a>
+            </>
+          ) : (
+            <p className="text-red-500 mt-2">🚫 No available offers</p>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+{/* Hotel room Results */}
 
 <div className="container mx-auto px-4 my-8">
         <h2 className="text-center text-2xl font-bold mb-4">Popular Destinations</h2>
