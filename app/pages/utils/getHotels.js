@@ -1,9 +1,8 @@
-// utils/getHotelsList.js
 import axios from "axios";
 
 // Amadeus API Credentials (Ensure these are stored securely in environment variables)
 const TOKEN_URL = "https://test.api.amadeus.com/v1/security/oauth2/token";
-const AMADEUS_API_URL_HOTELS = "https://test.api.amadeus.com/v1/reference-data/locations/hotels/by-city"; 
+const AMADEUS_API_URL_HOTELS = "https://test.api.amadeus.com/v2/shopping/hotel-offers"; // URL for Hotels
 const CLIENT_ID = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_ID;
 const CLIENT_SECRET = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_SECRET;
 
@@ -52,84 +51,65 @@ const getValidAccessToken = async () => {
 };
 
 /**
- * Search for hotels by city using Amadeus API
- * @param {Object} searchParams - Search parameters including cityCode, radius, etc.
+ * Helper function to calculate checkInDate from checkOutDate
+ * @param {string} checkOutDate - The check-out date (e.g., '2023-11-22')
+ * @returns {string} checkInDate - The calculated check-in date (the day before checkOutDate)
+ */
+const getCheckInDateFromCheckOut = (checkOutDate) => {
+  // Ensure the checkOutDate is valid
+  if (!checkOutDate || isNaN(new Date(checkOutDate).getTime())) {
+    throw new Error("❌ Invalid check-out date provided. Please check the date format.");
+  }
+
+  const checkOut = new Date(checkOutDate); // Convert checkOutDate to Date object
+  checkOut.setDate(checkOut.getDate() -1 ); // Subtract 1 day to get checkInDate
+  return checkOut.toISOString().split('T')[0]; // Return the date in 'YYYY-MM-DD' format
+};
+
+/**
+ * Search for hotels using Amadeus API by hotelIds
+ * @param {Object} searchParams - Additional search parameters (hotelIds, adults, checkInDate, checkOutDate, etc.)
  * @returns {Promise<Object>} Hotel search results
  */
-const getHotelsByCity = async (searchParams) => {
+export const getMultiHotelOffers = async (searchParams) => {
   try {
-    const { 
-      cityCode = "NCE", // Default to "NCE" if cityCode is not provided
-      radius = 10,      // Default radius 10 km
-      radiusUnit = "metric", // Default unit: metric (kilometers)
-      chainCodes,
-      amenities,
-      ratings,
-      hotelSource = "ALL", // Default hotel source: ALL
-    } = searchParams;
+    // Destructure parameters from searchParams
+    const { hotelIds, adults, checkOutDate } = searchParams;
 
-    // Ensure cityCode is provided
-    if (!cityCode) {
-      throw new Error("❌ City code is required. Please provide a valid city code.");
+    // Ensure checkOutDate is provided and valid
+    if (!checkOutDate || isNaN(new Date(checkOutDate).getTime())) {
+      throw new Error("❌ Check-out date is required. Please provide a valid check-out date.");
     }
-
-    console.log("🌍 Searching hotels in city code:", cityCode);
 
     // Get a valid access token
     const token = await getValidAccessToken();
+    console.log("🔍 Searching hotels...");
 
-    // Prepare the parameters for the API request
-    const params = {
-      cityCode, // The IATA code of the city (e.g., LON, PAR)
-      radius,   // Maximum distance (in kilometers or miles)
-      radiusUnit, // Unit of measurement (metric or imperial)
-      chainCodes: chainCodes ? chainCodes.join(",") : undefined, // Hotel chain codes
-      amenities: amenities ? amenities.join(",") : undefined, // List of amenities
-      ratings: ratings ? ratings.join(",") : undefined, // Hotel star ratings
-      hotelSource, // Source (e.g., 'BEDBANK', 'DIRECTCHAIN', 'ALL')
-    };
-
-    // Clean up undefined parameters
-    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+    // Calculate checkInDate based on checkOutDate
+    const checkInDate = getCheckInDateFromCheckOut(checkOutDate);
 
     // Fetch hotel offers from the Amadeus API
     const response = await axios.get(AMADEUS_API_URL_HOTELS, {
-      params,
+      params: {
+        hotelIds,
+        adults,
+        checkInDate,
+        checkOutDate,  // Include checkOutDate as part of the request
+      },
       headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/vnd.amadeus+json",
       },
-      timeout: 10000, // 10 seconds timeout
+      timeout: 10000 // 10 seconds timeout
     });
 
     // Check if we got valid results
-    if (response.data.data && response.data.data.length > 0) {
+    if (response.data.offers && response.data.offers.length > 0) {
       console.log("✅ Hotel search successful:", response.data);
-
-      // Process and return hotel data
-      const hotels = response.data.data.map((hotel) => {
-        const address = hotel.address || {}; // Default to empty object if address is missing
-        const geoCode = hotel.geoCode || {}; // Default to empty object if geoCode is missing
-        const distance = hotel.distance || {}; // Default to empty object if distance is missing
-
-        return {
-          name: hotel.name || "Unknown", // Fallback to "Unknown" if name is missing
-          address: address.countryCode || "Unknown", // Fallback to "Unknown" if countryCode is missing
-          distance: `${distance.value || 0} ${distance.unit || "KM"}`, // Default to 0 and "KM"
-          coordinates: {
-            latitude: geoCode.latitude || 0, // Default to 0 if latitude is missing
-            longitude: geoCode.longitude || 0, // Default to 0 if longitude is missing
-          },
-          hotelId: hotel.hotelId || "Unknown", // Fallback to "Unknown" if hotelId is missing
-          chainCode: hotel.chainCode || "Unknown", // Fallback to "Unknown" if chainCode is missing
-          iataCode: hotel.iataCode || "Unknown", // Fallback to "Unknown" if iataCode is missing
-        };
-      });
-
-      return hotels;
+      return response.data;
     } else {
       console.log("❓ No hotels found with the provided parameters.");
-      return [];
+      return response.data;
     }
   } catch (error) {
     console.error("❌ Error fetching hotel data:", error);
@@ -155,5 +135,3 @@ const getHotelsByCity = async (searchParams) => {
     }
   }
 };
-
-export default getHotelsByCity;

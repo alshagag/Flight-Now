@@ -1,3 +1,4 @@
+// utils/getHotelOffers.js
 import axios from "axios";
 
 // Amadeus API Credentials (Ensure these are stored securely in environment variables)

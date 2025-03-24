@@ -1,10 +1,12 @@
-"use client"; // To enable event handling in React
+"use client"; // Enable event handling in React
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { searchFlights } from "@/app/pages/utils/amadeus";
+import { searchFlights } from "@/app/pages/utils/getFlightOffers";
 import { getMultiHotelOffers } from "@/app/pages/utils/getHotelsOffers";
-import { getHotelsByCity } from "@/app/pages/utils/getHotelsList";
+import getHotelsByCity from "@/app/pages/utils/getHotelsList"; 
+import { cityMapping } from "@/app/pages/src/components/cityMapping";
+
 import "./styles/globals.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 
@@ -24,14 +26,14 @@ export default function Home() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [needHotel, setNeedHotel] = useState(false);  // Added state to check if hotel is needed
-  const [checkOutDate, setCheckOutDate] = useState("");  // Added check-out date state
+  const [needHotel, setNeedHotel] = useState(false);  
+  const [checkOutDate, setCheckOutDate] = useState("");
+    
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  // Handle search when user clicks search
   const handleSearch = async () => {
     if (!origin || !destination || !departureDate) {
       setError("Please fill in all required fields.");
@@ -52,7 +54,7 @@ export default function Home() {
         infants,
         travelClass,
         currencyCode,
-        max: 10, // Number of Result to fetch (SHOWING USERS)
+        max: 10,
       };
 
       const response = await searchFlights(flightData);
@@ -64,11 +66,10 @@ export default function Home() {
         setError("No flights available for the selected criteria.");
       }
 
-      // Search for hotels if needed
       if (needHotel && checkOutDate) {
-        await handlegetMultiHotelOffers();
+        await handleHotelSearch();
       }
-      
+
     } catch (err) {
       console.error("Flight search error:", err);
       setError("Failed to fetch flights. Please try again later.");
@@ -78,19 +79,34 @@ export default function Home() {
     }
   };
 
-  // Get hotel offers based on the destination and check-out date
-  const handlegetMultiHotelOffers = async () => {
+  const handleHotelSearch = async () => {
     try {
       setIsLoading(true);
+
+      if (!destination) {
+        setError("Please select a destination to search for hotels.");
+        return;
+      }
+
+      const hotelsByCity = await getHotelsByCity(destination);
+      if (!hotelsByCity || hotelsByCity.length === 0) {
+        setError("No hotels found in this destination.");
+        return;
+      }
+
+      const hotelIds = hotelsByCity.map(hotel => hotel.hotelId).slice(0, 5);
+
       const hotelData = {
-        hotelIds: ["MCLONGHM"],  // Example hotel ID
+        cityCode : destination,
+        hotelIds,
+        adults,
         checkInDate: departureDate,
-        checkOutDate: checkOutDate,  // Pass the check-out date
-        adults: 1,  // Example number of adults,
-        countryOfResidence: destination
+        checkOutDate,
+        currency: currencyCode,
       };
-      const hotelDataResponse = await getMultiHotelOffers(hotelData);  // Adjust according to your API
-      setHotels(hotelDataResponse?.data || []);
+
+      const hotelResponse = await getMultiHotelOffers(hotelData);
+      setHotels(hotelResponse?.data || []);
     } catch (err) {
       console.error("Hotel search error:", err);
       setError("Failed to fetch hotels. Please try again later.");
@@ -277,7 +293,7 @@ export default function Home() {
       </div>
     </div>
 
-    {/* Check-out Date (Only when hotel is needed) */}
+    {/* Check-out Date (Only when hotel is YES) */}
     {needHotel && (
       <div className="mb-6">
         <label htmlFor="check-out-date" className="block text-sm font-medium mb-1">
@@ -457,36 +473,80 @@ export default function Home() {
     <p className="text-center text-gray-600 text-lg mt-6">No results found.</p>
   )}
 
-
-{/* Hotel Search  Results */}
+{/* Hotel Search Results */}
 {hotels?.length > 0 && (
   <div className="container mx-auto px-4 my-8">
-    <h2 className="text-center text-2xl font-bold mb-4">🏨 Recommended Hotels</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {hotels.map((hotel, index) => (
-        <div key={index} className="bg-white shadow-lg rounded-lg p-6 transition-transform transform hover:scale-105">
-          <h3 className="text-xl font-semibold mb-2">{hotel.hotel.name}</h3>
-          <span className="text-gray-700">📍 {hotel.hotel.cityCode}</span>
-          
-          {hotel.offers?.length > 0 ? (
-            <>
-              <p className="text-gray-500">
-                💰 Price: {hotel.offers[0].price.total} {hotel.offers[0].price.currency}
-              </p>
-              <a href={hotel.offers[0].self} target="_blank" rel="noopener noreferrer">
-                <button className="bg-blue-600 text-white px-4 py-2 mt-4 rounded w-full hover:bg-blue-700">
-                  View Details
-                </button>
-              </a>
-            </>
-          ) : (
-            <p className="text-red-500 mt-2">🚫 No available offers</p>
-          )}
-        </div>
-      ))}
+    <h2 className="text-center text-3xl font-bold mb-8 text-gray-800">🏨 Recommended Hotels</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {hotels.map((hotel, index) => {
+        // Skip hotels with invalid offers or data
+        if (!hotel.offers || hotel.offers.length === 0) {
+          return null; // Skip this hotel if no valid offers are found
+        }
+
+        // Extracting necessary hotel data
+        const hotelOffer = hotel.offers[0];
+        const hotelImage = hotel?.hotel?.media?.[0]?.url || "https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg"; // Placeholder if no image
+        const cityName = cityMapping[hotel.cityCode] || hotel.cityCode; // Get the city name from the map or fallback to cityCode
+
+        return (
+          <div key={index} className="bg-white shadow-xl rounded-lg overflow-hidden transform hover:scale-105 transition-all duration-300">
+            <img src={hotelImage} alt={hotel.name} className="w-full h-48 object-cover" />
+            <div className="p-6">
+              <h3 className="text-2xl font-semibold mb-2 text-blue-600">{hotel.name}</h3>
+        
+              <div className="flex items-center text-gray-600 text-sm mb-2">
+                <i className="fa-solid fa-map-pin mr-2"></i>
+                <span>{cityName}</span>
+              </div>
+        
+              {hotelOffer ? (
+                <>
+                  <div className="my-4">
+                    <div className="flex items-center text-gray-600 mb-2">
+                      <i className="fa-solid fa-sterling-sign mr-2"></i> 
+                      <span className="block text-md font-medium">Price: <span className="font-semibold">{hotelOffer.price?.total} {hotelOffer.price?.currency || "GBP"}</span></span>
+                    </div>
+                    <div className="flex items-center text-gray-600 mb-2">
+                      <i className="fa-solid fa-bed mr-2"></i> 
+                      <span className="block text-md font-medium">Room: {hotelOffer.room?.description?.text || "No description available"}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600 mb-2">
+                      <i className="fa-solid fa-calendar-day mr-2"></i>
+                      <span className="block text-md font-medium">Check-In: {hotelOffer.checkInDate}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600 mb-2">
+                      <i className="fa-solid fa-calendar-days mr-2"></i> 
+                      <span className="block text-md font-medium">Check-Out: {hotelOffer.checkOutDate}</span>
+                    </div>
+
+                    {hotelOffer.price?.variations?.changes?.map((priceChange, priceIndex) => (
+                      <div key={priceIndex} className="flex items-center text-gray-600 text-sm mb-2">
+                        <i className="fa-solid fa-tag mr-2"></i> 
+                        <span className="block text-sm font-medium">Price Change: {priceChange.total} {hotelOffer.price?.currency} (from {priceChange.startDate} to {priceChange.endDate})</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <a href={hotelOffer.self} target="_blank" rel="noopener noreferrer">
+                    <button className="bg-blue-600 text-white px-4 py-2 mt-4 rounded-lg w-full hover:bg-blue-700 transition-colors">
+                      View Details
+                    </button>
+                  </a>
+                </>
+              ) : (
+                <p className="text-red-500 mt-2">🚫 No available offers</p>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   </div>
 )}
+
+
+
 
 {/* Hotel room Results */}
 
