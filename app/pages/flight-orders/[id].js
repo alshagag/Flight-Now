@@ -39,7 +39,6 @@ export default function FlightOrderDetails() {
       <p>Itinerary: {order.itinerary}</p>
       <p>Passenger: {order.passengerName}</p>
       <p>Price: {order.price}</p>
-      {/* Additional order details and actions */}
     </div>
   );
 }

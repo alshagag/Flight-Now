@@ -11,7 +11,6 @@ app.get('/api/hotel-offers', async (req, res) => {
         hotelIds: req.query.hotelIds,
         adults: req.query.adults,
         checkInDate: req.query.checkInDate,
-        // other params
       },
       headers: {
         'Authorization': 'Bearer YOUR_API_KEY', // Amadeus API key

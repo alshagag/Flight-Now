@@ -1,23 +1,29 @@
-// utils/getHotelsList.js
+
+// app/pages/utils/getHotelsList.js
 import axios from "axios";
 
-// Amadeus API Credentials (Ensure these are stored securely in environment variables)
+// Amadeus API Credentials
 const TOKEN_URL = "https://test.api.amadeus.com/v1/security/oauth2/token";
-const AMADEUS_API_URL_HOTELS = "https://test.api.amadeus.com/v1/reference-data/locations/hotels/by-city"; 
+const AMADEUS_API_URL_HOTELS_BY_CITY = "https://test.api.amadeus.com/v1/reference-data/locations/hotels/by-city";
+const AMADEUS_API_URL_HOTEL_OFFERS = "https://test.api.amadeus.com/v3/shopping/hotel-offers";
+const AMADEUS_API_URL_BOOK_HOTEL = "https://test.api.amadeus.com/v1/booking/hotel-orders";
+
 const CLIENT_ID = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_ID;
 const CLIENT_SECRET = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_SECRET;
 
-// Token cache to prevent unnecessary API calls
+// Token caching
 let cachedToken = null;
-let tokenExpiryTime = null;
+let tokenExpiryTime = 0;
 
-/**
- * Fetch a new access token from Amadeus API
- * @returns {Promise<string>} A valid access token
- */
-const fetchAccessToken = async () => {
+// Function to fetch a valid access token from Amadeus API
+const getValidAccessToken = async () => {
+  if (cachedToken && tokenExpiryTime > Date.now()) {
+    console.log("✅ Using cached token");
+    return cachedToken;
+  }
+
   try {
-    const response = await axios.post(
+    const { data } = await axios.post(
       TOKEN_URL,
       new URLSearchParams({
         grant_type: "client_credentials",
@@ -27,11 +33,10 @@ const fetchAccessToken = async () => {
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
 
-    // Cache the token and set the expiry time
-    cachedToken = response.data.access_token;
-    tokenExpiryTime = Date.now() + response.data.expires_in * 1000;
+    cachedToken = data.access_token;
+    tokenExpiryTime = Date.now() + data.expires_in * 1000;
+    console.log("🔑 Token refreshed successfully");
 
-    console.log("✅ Token refreshed successfully");
     return cachedToken;
   } catch (error) {
     console.error("❌ Error fetching access token:", error.response?.data || error.message);
@@ -39,121 +44,95 @@ const fetchAccessToken = async () => {
   }
 };
 
-/**
- * Get a valid access token, using the cached one if still valid
- * @returns {Promise<string>} A valid access token
- */
-const getValidAccessToken = async () => {
-  if (cachedToken && tokenExpiryTime > Date.now()) {
-    console.log("✅ Using cached token");
-    return cachedToken;
-  }
-  return fetchAccessToken();
-};
+// Function to fetch hotels by city code
+export const getHotelsByCity = async (cityCode) => {
+  if (!cityCode) throw new Error("❌ City code is required.");
 
-/**
- * Search for hotels by city using Amadeus API
- * @param {Object} searchParams - Search parameters including cityCode, radius, etc.
- * @returns {Promise<Object>} Hotel search results
- */
-const getHotelsByCity = async (searchParams) => {
+  const token = await getValidAccessToken();
+
   try {
-    const { 
-      cityCode = "NCE", // Default to "NCE" if cityCode is not provided
-      radius = 10,      // Default radius 10 km
-      radiusUnit = "metric", // Default unit: metric (kilometers)
-      chainCodes,
-      amenities,
-      ratings,
-      hotelSource = "ALL", // Default hotel source: ALL
-    } = searchParams;
-
-    // Ensure cityCode is provided
-    if (!cityCode) {
-      throw new Error("❌ City code is required. Please provide a valid city code.");
-    }
-
-    console.log("🌍 Searching hotels in city code:", cityCode);
-
-    // Get a valid access token
-    const token = await getValidAccessToken();
-
-    // Prepare the parameters for the API request
-    const params = {
-      cityCode, // The IATA code of the city (e.g., LON, PAR)
-      radius,   // Maximum distance (in kilometers or miles)
-      radiusUnit, // Unit of measurement (metric or imperial)
-      chainCodes: chainCodes ? chainCodes.join(",") : undefined, // Hotel chain codes
-      amenities: amenities ? amenities.join(",") : undefined, // List of amenities
-      ratings: ratings ? ratings.join(",") : undefined, // Hotel star ratings
-      hotelSource, // Source (e.g., 'BEDBANK', 'DIRECTCHAIN', 'ALL')
-    };
-
-    // Clean up undefined parameters
-    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
-
-    // Fetch hotel offers from the Amadeus API
-    const response = await axios.get(AMADEUS_API_URL_HOTELS, {
-      params,
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/vnd.amadeus+json",
-      },
-      timeout: 10000, // 10 seconds timeout
+    const { data } = await axios.get(AMADEUS_API_URL_HOTELS_BY_CITY, {
+      params: { cityCode },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
-    // Check if we got valid results
-    if (response.data.data && response.data.data.length > 0) {
-      console.log("✅ Hotel search successful:", response.data);
-
-      // Process and return hotel data
-      const hotels = response.data.data.map((hotel) => {
-        const address = hotel.address || {}; // Default to empty object if address is missing
-        const geoCode = hotel.geoCode || {}; // Default to empty object if geoCode is missing
-        const distance = hotel.distance || {}; // Default to empty object if distance is missing
-
-        return {
-          name: hotel.name || "Unknown", // Fallback to "Unknown" if name is missing
-          address: address.countryCode || "Unknown", // Fallback to "Unknown" if countryCode is missing
-          distance: `${distance.value || 0} ${distance.unit || "KM"}`, // Default to 0 and "KM"
-          coordinates: {
-            latitude: geoCode.latitude || 0, // Default to 0 if latitude is missing
-            longitude: geoCode.longitude || 0, // Default to 0 if longitude is missing
-          },
-          hotelId: hotel.hotelId || "Unknown", // Fallback to "Unknown" if hotelId is missing
-          chainCode: hotel.chainCode || "Unknown", // Fallback to "Unknown" if chainCode is missing
-          iataCode: hotel.iataCode || "Unknown", // Fallback to "Unknown" if iataCode is missing
-        };
-      });
-
-      return hotels;
-    } else {
-      console.log("❓ No hotels found with the provided parameters.");
-      return [];
-    }
+    return data.data.map((hotel) => hotel.hotelId) || [];
   } catch (error) {
-    console.error("❌ Error fetching hotel data:", error);
-
-    if (error.response) {
-      console.error("🛑 API Response Error:", {
-        status: error.response.status,
-        data: error.response.data,
-      });
-
-      switch (error.response.status) {
-        case 401:
-          throw new Error("🔑 Unauthorized: Invalid or expired access token.");
-        case 400:
-          throw new Error("📌 Bad Request: Check your search parameters.");
-        case 404:
-          throw new Error("❓ No results found: Try changing search criteria.");
-        default:
-          throw new Error(`⚠️ API Error: ${error.response.data.error_description || "Unexpected error."}`);
-      }
-    } else {
-      throw new Error("🚨 Network error: Unable to connect to Amadeus API.");
-    }
+    console.error("❌ Error fetching hotels:", error.response?.data || error.message);
+    throw new Error("❌ Failed to fetch hotels.");
   }
 };
 
-export default getHotelsByCity;
+// Function to fetch multiple hotel offers based on hotel IDs
+export const getMultiHotelOffers = async (hotelIds) => {
+  if (!Array.isArray(hotelIds) || hotelIds.length === 0) {
+    throw new Error("❌ Hotel IDs are required.");
+  }
+
+  const token = await getValidAccessToken();
+
+  try {
+    const { data } = await axios.get(AMADEUS_API_URL_HOTEL_OFFERS, {
+      params: { hotelIds: hotelIds.join(",") },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return data.data || [];
+  } catch (error) {
+    console.error("❌ Error fetching hotel offers:", error.response?.data || error.message);
+    throw new Error("❌ Failed to fetch hotel offers.");
+  }
+};
+
+// Function to book a hotel room
+export const bookHotelRoom = async (bookingData) => {
+  if (!bookingData || typeof bookingData !== "object") {
+    throw new Error("❌ Invalid booking data.");
+  }
+
+  const token = await getValidAccessToken();
+
+  try {
+    const { data } = await axios.post(AMADEUS_API_URL_BOOK_HOTEL, bookingData, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    });
+
+    return data;
+  } catch (error) {
+    console.error("❌ Error booking hotel:", error.response?.data || error.message);
+    throw new Error("❌ Failed to complete booking.");
+  }
+};
+
+// Main function to search for hotels
+export const searchHotels = async (cityCode) => {
+  if (!cityCode) throw new Error("❌ City code is required.");
+
+  const hotelIds = await getHotelsByCity(cityCode);
+  if (!hotelIds.length) {
+    console.log("❌ No hotels found in the city.");
+    return [];
+  }
+
+  return await getMultiHotelOffers(hotelIds);
+};
+
+// Adding the fetchHotels function to work with the API route
+export const fetchHotels = async (cityCode) => {
+  try {
+    const response = await fetch(`/api/hotels?cityCode=${cityCode}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to fetch hotel data');
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching hotel data:", error);
+  }
+};
+
