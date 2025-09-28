@@ -1,4 +1,4 @@
-<img width="1896" height="852" alt="image" src="https://github.com/user-attachments/assets/25d855bc-5b4f-4d8b-9152-9f3ea6e1a1fa" /><img width="1764" height="776" alt="image" src="https://github.com/user-attachments/assets/8582b70c-a00f-48ad-9824-449969c930df" /># Flight Now ✈️
+# Flight Now ✈️
 
 **Flight Now** is a graduation project developed to provide an easy-to-use platform for booking flights and hotels. The system integrates with the **Amadeus API** to deliver real-time flight data and availability.
 
@@ -15,6 +15,10 @@
 * **Database**: MySQL / PostgreSQL (for future features)
 * **API Integration**: Amadeus API (for flights data)
 * **Deployment**: Vercel
+
+## 📸 Screenshots
+
+<img width="1896" height="852" alt="image" src="https://github.com/user-attachments/assets/25d855bc-5b4f-4d8b-9152-9f3ea6e1a1fa" />
 
 ## ⚙️ Installation & Setup
 
@@ -54,7 +58,3 @@
 ## 🎓 About
 
 This project was developed as part of a **graduation capstone project** in 2025. The main goal is to demonstrate the integration of external APIs with a modern web framework, while providing a real-world application for travel and booking management.
-
----
-
-تحبني أضيف جزء **How It Works** يشرح خطوات تجربة المستخدم (من البحث عن رحلة → اختيار → حجز) عشان الملف يكون أكثر وضوح للعرض الأكاديمي؟
