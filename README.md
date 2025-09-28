@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<img width="1896" height="852" alt="image" src="https://github.com/user-attachments/assets/25d855bc-5b4f-4d8b-9152-9f3ea6e1a1fa" /><img width="1764" height="776" alt="image" src="https://github.com/user-attachments/assets/8582b70c-a00f-48ad-9824-449969c930df" /># Flight Now ✈️
 
-## Getting Started
+**Flight Now** is a graduation project developed to provide an easy-to-use platform for booking flights and hotels. The system integrates with the **Amadeus API** to deliver real-time flight data and availability.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+* 🔍 **Flight Search**: Search flights in real time using the Amadeus API.
+* 🏨 **Hotel Booking**: Browse and book hotels with a seamless experience.
+* 🌐 **Responsive Design**: Optimized for desktop and mobile devices.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* **Frontend**: Next.js, React, Tailwind CSS
+* **Backend**: Node.js, Express (with Next.js API routes)
+* **Database**: MySQL / PostgreSQL (for future features)
+* **API Integration**: Amadeus API (for flights data)
+* **Deployment**: Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## ⚙️ Installation & Setup
 
-## Learn More
+1. Clone the repository:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   git clone https://github.com/your-username/flight-now.git
+   cd flight-now
+   ```
+2. Install dependencies:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm install
+   ```
+3. Add your environment variables in a `.env.local` file:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```env
+   AMADEUS_API_KEY=your_api_key
+   AMADEUS_API_SECRET=your_api_secret
+   DATABASE_URL=your_database_url
+   ```
+4. Run the development server:
 
-## Deploy on Vercel
+   ```bash
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📌 Future Features
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* 👤 **User Authentication**: Secure login and registration system with database integration.
+* 📩 **Email Confirmation**: Automatic confirmation email sent after user registration.
+* ⚙️ **Admin Panel**: Manage bookings, customers, and system access.
+* 💳 **Payment Gateway** integration (Stripe/PayPal).
+* 🌍 Multi-language support.
+* 📱 Mobile app version of **Flight Now**.
+
+## 🎓 About
+
+This project was developed as part of a **graduation capstone project** in 2025. The main goal is to demonstrate the integration of external APIs with a modern web framework, while providing a real-world application for travel and booking management.
+
+---
+
+تحبني أضيف جزء **How It Works** يشرح خطوات تجربة المستخدم (من البحث عن رحلة → اختيار → حجز) عشان الملف يكون أكثر وضوح للعرض الأكاديمي؟
